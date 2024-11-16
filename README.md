@@ -1,5 +1,5 @@
 # Quine Mccluskey 
-This project implements the Quine-McCluskey algorithm for EEE 4334. It allows the simplification of two-level boolean functions.  
+This project implements the Quine-McCluskey algorithm in Java for EEE 4334. It allows the simplification of two-level boolean functions.  
 
 ## 📖 Usage
 ### ⚙️ General
