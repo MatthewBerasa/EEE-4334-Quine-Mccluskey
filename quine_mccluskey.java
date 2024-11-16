@@ -6,74 +6,131 @@ class Quine_McClusky{
 	static ArrayList<String> essentialPrimeImplicants = new ArrayList<>();
 	static HashSet<String> primeImplicants = new HashSet<>();
 	static HashSet<String> uncoveredMinterms = new HashSet<>();
+	static HashSet<String> originalMinterms = new HashSet<>();
+	static HashSet<String> originalMaxterms = new HashSet<>();
+	static HashSet<String> originalDontCares = new HashSet<>();
 	
 	public static void main(String[] args) {
 		//Read PLA File
-		int numOfInputs = new Scanner(System.in).nextInt();
+		Scanner stdin = new Scanner(System.in);
 		
-		int numOfOutputs = new Scanner(System.in).nextInt();
+		int numOfInputs = -1;
+		int numOfOutputs = -1;
+		int numOfProducts = -1;
 		
-		int numOfProducts = new Scanner(System.in).nextInt();
+		boolean validInput = true;
 		
-		
-		//Read products
-		for(int i = 0; i < numOfProducts; i++) {
-			String term = new Scanner(System.in).next();
-			int output = new Scanner(System.in).nextInt();
+		while(stdin.hasNext()) {
 			
-			//If product output is 1 then it is a minterm
-			if(output == 1)
-				uncoveredMinterms.add(term);
-		}		
-		
-		
-		//Prime Generation Tabular Method 
-		primeGeneration(uncoveredMinterms, numOfInputs);
-		
-		
-		boolean simplification = false;
-		do {
-			simplification = false;
-			//Create Prime Implicant Table
-			HashMap<String, HashSet<String>>primeImplicantsTable = createPrimeImplicantsTable(numOfInputs);
+			String line = stdin.nextLine().trim();
 			
-		
-			//Find Essential Prime Implicants
-			simplification = findEssentialPrimeImplicants(primeImplicantsTable);
-		
-			//Row Dominance 
-			HashMap<String, HashSet<String>> primeImplicantsTable_rowDominance = createPrimeImplicantsTable(numOfInputs);
-			simplification = checkRowDominance(primeImplicantsTable_rowDominance);
-		
-			//Column Dominance 
-			HashMap<String, HashSet<String>> primeImplicantsTable_columnDominance = createPrimeImplicantsTable(numOfInputs);
-			simplification = checkColumnDominance(primeImplicantsTable_columnDominance);
-		}while(simplification);
-		
-		//If minterms are still uncovered then choose whichever prime implicant that covers them and add them to essentialPrimeImplicant
-		HashMap<String, HashSet<String>>primeImplicantsTable = createPrimeImplicantsTable(numOfInputs);
-		
-		//Iterate through all remaining uncovered minterms and choose first prime implicant that covers them
-		Iterator<String> finalUncoveredMinterms = uncoveredMinterms.iterator();
-		while(finalUncoveredMinterms.hasNext()) {
+			String[] tokens = line.split("\\s+");
 			
-			String currMinterm = finalUncoveredMinterms.next();
+			switch(tokens[0]) {
 			
-			Iterator<String> currMintermPrimeImplicants = primeImplicantsTable.get(currMinterm).iterator();
-			boolean found = false;
-			
-			while(currMintermPrimeImplicants.hasNext() && !found) {
-				String currPrimeImplicant = currMintermPrimeImplicants.next();
+				case ".i": numOfInputs = Integer.parseInt(tokens[1]); break;
 				
-				if(!essentialPrimeImplicants.contains(currPrimeImplicant)) {
-					found = true;
-					essentialPrimeImplicants.add(currPrimeImplicant);
+				case ".o": numOfOutputs = Integer.parseInt(tokens[1]); break;
+			
+				case ".p": {
+					numOfProducts = Integer.parseInt(tokens[1]);
+				
+					//Read Terms
+					for(int i = 0; i < numOfProducts; i++) {
+						String termLine = stdin.nextLine().trim();
+					
+						String[] termTokens = termLine.split("\\s+");
+					
+						String currTerm = termTokens[0];
+						String termOutput = termTokens[1];
+					
+						if(termOutput.equals("1")) {
+							uncoveredMinterms.add(currTerm);
+							originalMinterms.add(currTerm);
+						}
+						else if(termOutput.equals("-"))
+							originalDontCares.add(currTerm);
+						else if(termOutput.equals("0"))
+							originalMaxterms.add(currTerm);
+					}
+				
+					break;
+				
 				}
-			}
+			
+				case ".e": validInput = true; break;
+			
+				default: validInput = false; 
+			
+			}	
 		}
 		
-		for(String x : essentialPrimeImplicants)
-			System.out.println(x);
+		
+		if(!validInput)
+			System.out.println("Invalid PLA Format Input");
+		
+		else {
+			//Prime Generation Tabular Method 
+			primeGeneration(originalMinterms, numOfInputs);
+		
+			//Keep doing QM method until no simplifcation occurs 
+			boolean simplification = false;
+			do {
+				simplification = false;
+				//Create Prime Implicant Table
+				HashMap<String, HashSet<String>>primeImplicantsTable = createPrimeImplicantsTable(numOfInputs);
+			
+		
+				//Find Essential Prime Implicants
+				simplification = findEssentialPrimeImplicants(primeImplicantsTable);
+		
+				//Row Dominance 
+				HashMap<String, HashSet<String>> primeImplicantsTable_rowDominance = createPrimeImplicantsTable(numOfInputs);
+				simplification = checkRowDominance(primeImplicantsTable_rowDominance);
+		
+				//Column Dominance 
+				HashMap<String, HashSet<String>> primeImplicantsTable_columnDominance = createPrimeImplicantsTable(numOfInputs);
+				simplification = checkColumnDominance(primeImplicantsTable_columnDominance);
+			}while(simplification);
+		
+			//If minterms are still uncovered then choose whichever prime implicant that covers them and add them to essentialPrimeImplicant
+			HashMap<String, HashSet<String>>primeImplicantsTable = createPrimeImplicantsTable(numOfInputs);
+		
+			//Iterate through all remaining uncovered minterms and choose first prime implicant that covers them
+			Iterator<String> finalUncoveredMinterms = uncoveredMinterms.iterator();
+			while(finalUncoveredMinterms.hasNext()) {
+			
+				String currMinterm = finalUncoveredMinterms.next();
+			
+				Iterator<String> currMintermPrimeImplicants = primeImplicantsTable.get(currMinterm).iterator();
+				boolean found = false;
+			
+				while(currMintermPrimeImplicants.hasNext() && !found) {
+					String currPrimeImplicant = currMintermPrimeImplicants.next();
+				
+					if(!essentialPrimeImplicants.contains(currPrimeImplicant)) {
+						found = true;
+						essentialPrimeImplicants.add(currPrimeImplicant);
+					}
+				}
+			}
+		
+			//Ouput PLA Format
+			
+			System.out.println(".i " + numOfInputs);
+			System.out.println(".o " + numOfOutputs);
+			numOfProducts = essentialPrimeImplicants.size() + originalDontCares.size() + originalMaxterms.size();
+			System.out.println(".p " + numOfProducts);
+			
+			for(String x : essentialPrimeImplicants)
+				System.out.println(x + " 1");
+			for(String y : originalDontCares)
+				System.out.println(y + " X");
+			for(String z : originalMaxterms)
+				System.out.println(z + " 0");
+			
+			System.out.print(".e");
+		}
 		
 	}
 	
