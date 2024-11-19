@@ -71,7 +71,7 @@ class Quine_McClusky{
 		
 		else {
 			//Prime Generation Tabular Method 
-			primeGeneration(originalMinterms, numOfInputs);
+			primeGeneration(originalMinterms, originalDontCares, numOfInputs);
 		
 			//Keep doing QM method until no simplifcation occurs 
 			boolean simplification = false;
@@ -83,10 +83,16 @@ class Quine_McClusky{
 		
 				//Find Essential Prime Implicants
 				simplification = findEssentialPrimeImplicants(primeImplicantsTable);
+				
+				if(uncoveredMinterms.size() == 0)
+					break;
 		
 				//Row Dominance 
 				HashMap<String, HashSet<String>> primeImplicantsTable_rowDominance = createPrimeImplicantsTable(numOfInputs);
 				simplification = checkRowDominance(primeImplicantsTable_rowDominance);
+				
+				if(uncoveredMinterms.size() == 0)
+					break;
 		
 				//Column Dominance 
 				HashMap<String, HashSet<String>> primeImplicantsTable_columnDominance = createPrimeImplicantsTable(numOfInputs);
@@ -125,7 +131,7 @@ class Quine_McClusky{
 			for(String x : essentialPrimeImplicants)
 				System.out.println(x + " 1");
 			for(String y : originalDontCares)
-				System.out.println(y + " X");
+				System.out.println(y + " -");
 			for(String z : originalMaxterms)
 				System.out.println(z + " 0");
 			
@@ -134,17 +140,19 @@ class Quine_McClusky{
 		
 	}
 	
-	public static void primeGeneration(HashSet<String> minterms, int numOfInputs) {
+	public static void primeGeneration(HashSet<String> minterms, HashSet<String> dontCares, int numOfInputs) {
 		boolean simplification = false;
+		boolean firstStage = true;
 		//Keep combining minterms until there wasn't a simplification
 		do {
 			simplification = false;
 			
-			//HashMap Tabular Method (Key = # of 1s and Inner HashMap will store Key = Minterm and Value = checkmark) (Checkmark means if minterm had one bit diff)
+			//HashMap Tabular Method (Key = # of 1s and Inner HashMap will store Key = Minterm/Don't Cares and Value = checkmark)
+			//Checkmark means that minterm/don't care had one bit diff 
 			Map<Integer, HashMap<String, Boolean>> table = new HashMap<>();
 			
 			
-			//Iterate through minterms counting the # of 1 they have
+			//Iterate through minterms counting the # of 1s they have
 			Iterator<String> mintermList = minterms.iterator();
 			
 			while(mintermList.hasNext()) {
@@ -162,8 +170,34 @@ class Quine_McClusky{
 				if(!table.containsKey(oneCounter))
 					table.put(oneCounter, new HashMap<>());
 				
+				
 				table.get(oneCounter).put(currMinterm, false);
 			}
+			
+			//Iterate through don't cares counting the # of 1s they have (Only for First Stage)
+			if(firstStage) {
+				Iterator<String> dontCaresList = dontCares.iterator();
+			
+				while(dontCaresList.hasNext()) {
+					String currDontCare = dontCaresList.next();
+					int oneCounter = 0;
+					
+					for(int x = 0; x < currDontCare.length(); x++) {
+						char curr = currDontCare.charAt(x);
+						
+						if(curr == '1')
+							oneCounter++;
+					}
+					
+					if(!table.containsKey(oneCounter)) 
+						table.put(oneCounter, new HashMap<>());
+					
+					table.get(oneCounter).put(currDontCare, false);
+				}
+				
+				firstStage = false;
+			}
+		
 			
 			//Reset minterms
 			minterms = new HashSet<>();
@@ -406,7 +440,7 @@ class Quine_McClusky{
 	
 	public static boolean checkColumnDominance(HashMap<String, HashSet<String>> primeImplicantsTable) {
 		//For every prime implicant (IF NOT ESSENTIAL ALREADY) check how many minterms it covers
-		String[] primeImplicantsArr = Arrays.copyOf(uncoveredMinterms.toArray(), uncoveredMinterms.size(), String[].class);
+		String[] primeImplicantsArr = Arrays.copyOf(primeImplicants.toArray(), primeImplicants.size(), String[].class);
 		
 		boolean columnDominanceFound = false;
 		

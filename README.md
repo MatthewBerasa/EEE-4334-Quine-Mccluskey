@@ -18,7 +18,7 @@ The input file must be in PLA Format.
 
 Specifications:
   - One Output
-  - Max Boolean Space of 6
+  - Max Boolean Space of 10
   - Must list out all input combinations for products (fully specified)
   - Each input combination must specifiy output:
       - 0
